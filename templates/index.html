@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Scraper</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 data-text="[ Web Scraper ]">[ Web Scraper ]</h1>
+            <button id="dark-mode-toggle">Toggle Theme</button>
+        </header>
+
+        <form id="scrape-form">
+            <textarea id="url-input" placeholder="Enter website URLs, one per line (e.g., example.com)" required rows="5"></textarea>
+            <button type="submit" id="scrape-button">Scrape All URLs</button>
+        </form>
+
+        <div id="loading-indicator" class="hidden">
+            <div class="spinner"></div>
+            <p>Scraping... Please wait.</p>
+        </div>
+
+        <div id="message-area"></div>
+
+        <div class="results-header">
+            <h2>Results</h2>
+            <div id="download-container" class="hidden">
+                <button id="download-excel-button">Download as Excel</button>
+                <button id="download-csv-button">Download as CSV</button>
+                <button id="download-json-button">Download as JSON</button>
+            </div>
+        </div>
+
+        <div class="results-container">
+            <table id="results-table">
+                <thead>
+                    <tr>
+                        <th>Email</th>
+                        <th>Mobile Number</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Results will be injected here by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

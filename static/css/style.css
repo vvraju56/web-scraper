@@ -1,0 +1,261 @@
+/* --- Cyberpunk/Hacker Theme --- */
+
+/* --- CSS Variables --- */
+:root {
+    --dark-bg: #0d0d0d;
+    --primary-text: #e0e0e0;
+    --cyan: #00f8f8;
+    --pink: #f800f8;
+    --glow-shadow: 0 0 5px var(--cyan), 0 0 10px var(--cyan), 0 0 20px var(--cyan);
+    --font-family: 'Courier New', Courier, monospace;
+}
+
+/* --- Base Styles --- */
+body {
+    font-family: var(--font-family);
+    margin: 0;
+    padding: 20px;
+    background-color: var(--dark-bg);
+    color: var(--primary-text);
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 800px;
+    width: 100%;
+    background-color: #1a1a1a;
+    padding: 30px;
+    border: 1px solid var(--cyan);
+    box-shadow: var(--glow-shadow);
+    border-radius: 4px;
+}
+
+/* --- Header & Title --- */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--cyan);
+    padding-bottom: 20px;
+    margin-bottom: 30px;
+}
+
+h1 {
+    margin: 0;
+    font-size: 2.5em;
+    color: var(--cyan);
+    text-shadow: var(--glow-shadow);
+    animation: glitch 1s linear infinite;
+}
+
+/* Glitch Animation */
+@keyframes glitch {
+    2%,64% { transform: translate(2px,0) skew(0deg); }
+    4%,60% { transform: translate(-2px,0) skew(0deg); }
+    62% { transform: translate(0,0) skew(5deg); }
+}
+
+h1:before,
+h1:after {
+    content: attr(data-text);
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #1a1a1a;
+    overflow: hidden;
+}
+
+h1:before {
+    left: 2px;
+    text-shadow: -2px 0 var(--pink);
+    animation: glitch-anim-1 2s linear infinite reverse;
+}
+
+h1:after {
+    left: -2px;
+    text-shadow: 2px 0 var(--cyan);
+    animation: glitch-anim-2 2s linear infinite reverse;
+}
+
+@keyframes glitch-anim-1 {
+    0%, 100% { clip-path: inset(0 0 95% 0); }
+    25% { clip-path: inset(50% 0 20% 0); }
+    50% { clip-path: inset(90% 0 5% 0); }
+    75% { clip-path: inset(30% 0 60% 0); }
+}
+
+@keyframes glitch-anim-2 {
+    0%, 100% { clip-path: inset(95% 0 0 0); }
+    25% { clip-path: inset(10% 0 80% 0); }
+    50% { clip-path: inset(40% 0 40% 0); }
+    75% { clip-path: inset(80% 0 10% 0); }
+}
+
+
+/* --- Form Elements --- */
+#scrape-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+textarea#url-input {
+    flex-grow: 1;
+    padding: 15px;
+    border: 1px solid var(--cyan);
+    border-radius: 4px;
+    font-size: 16px;
+    background-color: #0d0d0d;
+    color: var(--primary-text);
+    font-family: var(--font-family);
+    resize: vertical;
+    min-height: 80px;
+}
+
+textarea#url-input:focus {
+    outline: none;
+    box-shadow: var(--glow-shadow);
+}
+
+button {
+    padding: 12px 20px;
+    border: 1px solid var(--cyan);
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    background-color: transparent;
+    color: var(--cyan);
+    font-family: var(--font-family);
+    text-transform: uppercase;
+    transition: background-color 0.3s, color 0.3s, text-shadow 0.3s;
+}
+
+button:hover, button:focus {
+    background-color: var(--cyan);
+    color: #0d0d0d;
+    text-shadow: 0 0 5px #0d0d0d;
+}
+
+button:disabled {
+    border-color: #555;
+    color: #555;
+    cursor: not-allowed;
+    background-color: transparent;
+}
+
+
+/* --- Indicators & Messages --- */
+#loading-indicator {
+    text-align: center;
+    padding: 20px;
+    margin-top: 20px;
+    color: var(--pink);
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #333;
+    border-top: 4px solid var(--pink);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 10px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+#message-area {
+    margin-top: 20px;
+    padding: 15px;
+    border-radius: 4px;
+    text-align: center;
+    font-weight: bold;
+}
+
+.message-success {
+    background-color: rgba(0, 248, 248, 0.1);
+    color: var(--cyan);
+    border: 1px solid var(--cyan);
+}
+
+.message-error {
+    background-color: rgba(248, 0, 248, 0.1);
+    color: var(--pink);
+    border: 1px solid var(--pink);
+}
+
+/* --- Results Table --- */
+.results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 30px;
+}
+
+.results-header h2 {
+    color: var(--primary-text);
+}
+
+#download-container {
+    display: flex;
+    gap: 10px;
+}
+
+.results-container {
+    margin-top: 10px;
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid var(--cyan);
+    border-radius: 4px;
+}
+
+#results-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #333;
+}
+
+th {
+    background-color: #111;
+    color: var(--cyan);
+    position: sticky;
+    top: 0;
+}
+
+td a {
+    color: var(--pink);
+    text-decoration: none;
+}
+td a:hover {
+    text-decoration: underline;
+}
+
+
+/* --- Dark/Light Mode Toggle --- */
+/* The design is dark by default, so this button is just for show or future use */
+#dark-mode-toggle {
+    border-color: var(--pink);
+    color: var(--pink);
+}
+#dark-mode-toggle:hover {
+    background-color: var(--pink);
+    color: #0d0d0d;
+}
+
+
+/* --- Utility --- */
+.hidden {
+    display: none;
+}
