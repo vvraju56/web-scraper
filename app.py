@@ -4,155 +4,250 @@ import threading
 import asyncio
 import httpx
 from flask import Flask, request, jsonify, render_template, send_file
+from flask_cors import CORS
 import pandas as pd
 from bs4 import BeautifulSoup
 from io import BytesIO
+from datetime import datetime
+from urllib.parse import urljoin, urlparse
+import time
 
-# --- Configuration ---
 app = Flask(__name__)
+CORS(app)
+
 EXCEL_FILE = 'scraped_data.xlsx'
 file_lock = threading.Lock()
 
-# --- Regex ---
-EMAIL_REGEX = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
-PHONE_REGEX = r'(\+91|0)?[6-9][0-9]{9}'
+EMAIL_REGEX = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+PHONE_REGEX = r'(\+\d{1,3}[-.\s]?)?\(?\d{1,4}\)?[-.\s]?\d{1,4}[-.\s]?\d{1,9}'
 
-# --- Async Scraping Engine ---
 async def scrape_page_for_contacts(client, page_url):
-    """
-    Asynchronously scrapes a single page for email and phone numbers.
-    """
+    """Enhanced async scraping with better error handling and data extraction"""
     try:
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
-        response = await client.get(page_url, timeout=15, headers=headers, follow_redirects=True)
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
+        response = await client.get(page_url, timeout=20, headers=headers, follow_redirects=True)
         response.raise_for_status()
-    except httpx.RequestError as e:
-        print(f"Error fetching URL {page_url}: {e}")
-        return {'url': page_url, 'emails': [], 'phones': [], 'error': f"Failed to fetch: {e}"}
+    except Exception as e:
+        return {'url': page_url, 'emails': [], 'phones': [], 'error': str(e)}
     
     soup = BeautifulSoup(response.text, 'html.parser')
+    
+    # Remove script and style elements
+    for script in soup(["script", "style"]):
+        script.decompose()
+    
     text = soup.get_text()
-    emails = set(re.findall(EMAIL_REGEX, text))
-    phones = set(re.findall(PHONE_REGEX, text))
-    return {'url': page_url, 'emails': list(emails), 'phones': list(phones)}
+    
+    # Enhanced email extraction
+    emails = set()
+    email_matches = re.findall(EMAIL_REGEX, text)
+    for email in email_matches:
+        email = email.lower().strip()
+        if len(email) > 5 and '.' in email.split('@')[1]:
+            emails.add(email)
+    
+    # Enhanced phone extraction
+    phones = set()
+    phone_matches = re.findall(PHONE_REGEX, text)
+    for phone in phone_matches:
+        phone = re.sub(r'[^\d+]', '', phone)
+        if len(phone) >= 10:
+            phones.add(phone)
+    
+    return {
+        'url': page_url,
+        'emails': list(emails),
+        'phones': list(phones),
+        'timestamp': datetime.now().isoformat()
+    }
+
+async def discover_internal_links(client, base_url, max_pages=10):
+    """Discover internal links from the main page"""
+    try:
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
+        response = await client.get(base_url, timeout=20, headers=headers, follow_redirects=True)
+        response.raise_for_status()
+        
+        soup = BeautifulSoup(response.text, 'html.parser')
+        base_domain = urlparse(base_url).netloc
+        
+        links = set([base_url])
+        
+        for link in soup.find_all('a', href=True):
+            href = link['href']
+            full_url = urljoin(base_url, href)
+            parsed_url = urlparse(full_url)
+            
+            if parsed_url.netloc == base_domain and len(links) < max_pages:
+                links.add(full_url)
+        
+        return list(links)[:max_pages]
+    except:
+        return [base_url]
 
 async def run_scraper(urls):
-    """
-    Sets up and runs the concurrent scraping tasks for the provided URLs.
-    """
+    """Enhanced scraper with internal link discovery"""
     async with httpx.AsyncClient() as client:
-        tasks = [scrape_page_for_contacts(client, url) for url in urls]
+        all_urls_to_scrape = []
+        
+        # Discover internal links for each provided URL
+        for url in urls:
+            discovered_urls = await discover_internal_links(client, url)
+            all_urls_to_scrape.extend(discovered_urls)
+        
+        # Remove duplicates
+        all_urls_to_scrape = list(set(all_urls_to_scrape))
+        
+        # Scrape all discovered URLs
+        tasks = [scrape_page_for_contacts(client, url) for url in all_urls_to_scrape]
         results = await asyncio.gather(*tasks)
+        
     return results
 
-# --- Synchronous Data Handling ---
-def save_data(emails_to_save, phones_to_save):
-    """
-    Saves new, unique emails and phone numbers to the Excel file.
-    """
+def save_data_with_sources(scraped_results):
+    """Save data with source URL tracking and timestamps"""
     with file_lock:
         try:
-            if os.path.exists(EXCEL_FILE):
-                df = pd.read_excel(EXCEL_FILE)
-                existing_emails = set(df['Email'].dropna())
-                existing_phones = set(df['Mobile Number'].dropna())
-            else:
-                df = pd.DataFrame(columns=['Email', 'Mobile Number'])
-                existing_emails = set()
-                existing_phones = set()
-
-            new_emails = [email for email in emails_to_save if email not in existing_emails]
-            new_phones = [phone for phone in phones_to_save if phone not in existing_phones]
-
-            if not new_emails and not new_phones:
+            data_rows = []
+            
+            for result in scraped_results:
+                if result.get('error'):
+                    continue
+                    
+                source_url = result['url']
+                timestamp = result.get('timestamp', datetime.now().isoformat())
+                
+                # Add emails
+                for email in result.get('emails', []):
+                    data_rows.append({
+                        'Timestamp': timestamp,
+                        'Type': 'Email',
+                        'Value': email,
+                        'Source URL': source_url
+                    })
+                
+                # Add phones
+                for phone in result.get('phones', []):
+                    data_rows.append({
+                        'Timestamp': timestamp,
+                        'Type': 'Phone',
+                        'Value': phone,
+                        'Source URL': source_url
+                    })
+            
+            if not data_rows:
                 return
-
-            new_data = {
-                'Email': pd.Series(new_emails),
-                'Mobile Number': pd.Series(new_phones)
-            }
-            new_df = pd.DataFrame(dict([(k, pd.Series(v)) for k,v in new_data.items()]))
-
-            final_df = pd.concat([df, new_df], ignore_index=True)
-            final_df.to_excel(EXCEL_FILE, index=False)
+            
+            new_df = pd.DataFrame(data_rows)
+            
+            # Load existing data if file exists
+            if os.path.exists(EXCEL_FILE):
+                existing_df = pd.read_excel(EXCEL_FILE)
+                # Remove duplicates based on Value + Source URL
+                combined_df = pd.concat([existing_df, new_df], ignore_index=True)
+                combined_df = combined_df.drop_duplicates(subset=['Value', 'Source URL'], keep='first')
+            else:
+                combined_df = new_df
+            
+            # Sort by timestamp
+            combined_df = combined_df.sort_values('Timestamp', ascending=False)
+            combined_df.to_excel(EXCEL_FILE, index=False)
+            
         except Exception as e:
             print(f"Error saving to Excel: {e}")
 
-# --- API Endpoints ---
 @app.route('/')
 def index():
     return render_template('index.html')
 
 @app.route('/scrape', methods=['POST'])
 def scrape():
-    """
-    Synchronous endpoint that calls the async scraper and aggregates results.
-    """
+    """Enhanced scraping endpoint with better data structure"""
     data = request.get_json()
     urls_raw = data.get('urls')
-    if not urls_raw or not isinstance(urls_raw, list): return jsonify({'error': 'A list of URLs is required'}), 400
+    
+    if not urls_raw or not isinstance(urls_raw, list):
+        return jsonify({'error': 'A list of URLs is required'}), 400
 
     urls_to_scrape = []
     for raw_url in urls_raw:
         url = raw_url.strip()
-        if not url: continue
+        if not url:
+            continue
         if not url.startswith('http://') and not url.startswith('https://'):
             url = 'https://' + url
         urls_to_scrape.append(url)
     
-    if not urls_to_scrape: return jsonify({'error': 'No valid URLs provided'}), 400
+    if not urls_to_scrape:
+        return jsonify({'error': 'No valid URLs provided'}), 400
 
-    # Run scraper and get results
+    # Run enhanced scraper
     results = asyncio.run(run_scraper(urls_to_scrape))
-
-    # Aggregate all emails and phones into two flat, unique lists
+    
+    # Process results for response
+    response_data = []
     all_emails = set()
     all_phones = set()
-    for res in results:
-        if res.get('error'): continue
-        for email in res.get('emails', []):
-            all_emails.add(email)
-        for phone in res.get('phones', []):
-            all_phones.add(phone)
     
-    # Convert sets to lists for JSON response and saving
-    email_list = list(all_emails)
-    phone_list = list(all_phones)
+    for result in results:
+        if result.get('error'):
+            continue
+            
+        source_url = result['url']
+        
+        for email in result.get('emails', []):
+            if email not in all_emails:
+                all_emails.add(email)
+                response_data.append({
+                    'type': 'Email',
+                    'value': email,
+                    'source': source_url
+                })
+        
+        for phone in result.get('phones', []):
+            if phone not in all_phones:
+                all_phones.add(phone)
+                response_data.append({
+                    'type': 'Phone',
+                    'value': phone,
+                    'source': source_url
+                })
+    
+    # Save data in background
+    threading.Thread(target=save_data_with_sources, args=(results,)).start()
+    
+    return jsonify({
+        'success': True,
+        'data': response_data,
+        'summary': {
+            'total_emails': len(all_emails),
+            'total_phones': len(all_phones),
+            'total_urls_scraped': len([r for r in results if not r.get('error')])
+        }
+    })
 
-    # Save data in a background thread
-    threading.Thread(target=save_data, args=(email_list, phone_list)).start()
-
-    return jsonify({'emails': email_list, 'phones': phone_list})
-
-@app.route('/download/<filetype>')
-def download_file(filetype):
-    """Serves the collected data file for download."""
+@app.route('/download')
+def download_excel():
+    """Download the latest Excel file"""
     with file_lock:
-        if not os.path.exists(EXCEL_FILE): return "No data file found.", 404
-        df = pd.read_excel(EXCEL_FILE)
-        output = BytesIO()
-        filename, mimetype = f"scraped_data.{filetype}", f"text/{filetype}"
+        if not os.path.exists(EXCEL_FILE):
+            return jsonify({'error': 'No data file found'}), 404
         
-        if filetype == 'excel':
-            df.to_excel(output, index=False, sheet_name='Scraped Data')
-            mimetype = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            filename = 'scraped_data.xlsx'
-        elif filetype == 'csv':
-            df.to_csv(output, index=False, encoding='utf-8')
-        elif filetype == 'json':
-            # For this simpler structure, a different JSON format might be better
-            json_data = {
-                "emails": df["Email"].dropna().tolist(),
-                "mobile_numbers": df["Mobile Number"].dropna().tolist()
-            }
-            output.write(pd.io.json.dumps(json_data, indent=4).encode('utf-8'))
-            mimetype = 'application/json'
-        else:
-            return "Invalid file type requested.", 400
-        
-        output.seek(0)
-        return send_file(output, mimetype=mimetype, as_attachment=True, download_name=filename)
+        return send_file(
+            EXCEL_FILE,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=f'scraped_data_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+        )
 
-# --- Main ---
+@app.route('/health')
+def health_check():
+    """Health check endpoint for deployment"""
+    return jsonify({'status': 'healthy', 'timestamp': datetime.now().isoformat()})
+
 if __name__ == '__main__':
     app.run(debug=True)

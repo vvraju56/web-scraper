@@ -6,6 +6,10 @@
       "use": "@vercel/python"
     },
     {
+      "src": "app.py",
+      "use": "@vercel/python"
+    },
+    {
       "src": "static/**",
       "use": "@vercel/static"
     },
@@ -20,12 +24,35 @@
       "dest": "/static/$1"
     },
     {
+      "src": "/download",
+      "dest": "wsgi.py"
+    },
+    {
       "src": "/download/(.*)",
+      "dest": "wsgi.py"
+    },
+    {
+      "src": "/scrape",
+      "dest": "wsgi.py"
+    },
+    {
+      "src": "/health",
       "dest": "wsgi.py"
     },
     {
       "src": "/(.*)",
       "dest": "wsgi.py"
     }
-  ]
+  ],
+  "functions": {
+    "wsgi.py": {
+      "runtime": "python3.9",
+      "maxDuration": 30
+    }
+  },
+  "env": {
+    "PYTHON_VERSION": "3.9"
+  },
+  "framework": "flask",
+  "installCommand": "pip install -r requirements.txt"
 }

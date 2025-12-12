@@ -3,51 +3,292 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web Scraper</title>
+    <title>Intelligent Web Scraper | Extract Contacts & Data</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1 data-text="[ Web Scraper ]">[ Web Scraper ]</h1>
-            <button id="dark-mode-toggle">Toggle Theme</button>
-        </header>
-
-        <form id="scrape-form">
-            <textarea id="url-input" placeholder="Enter website URLs, one per line (e.g., example.com)" required rows="5"></textarea>
-            <button type="submit" id="scrape-button">Scrape All URLs</button>
-        </form>
-
-        <div id="loading-indicator" class="hidden">
-            <div class="spinner"></div>
-            <p>Scraping... Please wait.</p>
-        </div>
-
-        <div id="message-area"></div>
-
-        <div class="results-header">
-            <h2>Results</h2>
-            <div id="download-container" class="hidden">
-                <button id="download-excel-button">Download as Excel</button>
-                <button id="download-csv-button">Download as CSV</button>
-                <button id="download-json-button">Download as JSON</button>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <i class="fas fa-robot"></i>
+                <span>WebScraper Pro</span>
+            </div>
+            <div class="nav-menu">
+                <button class="nav-link" onclick="scrollToSection('hero')">Home</button>
+                <button class="nav-link" onclick="scrollToSection('features')">Features</button>
+                <button class="nav-link" onclick="scrollToSection('results')">Results</button>
+                <button class="theme-toggle" id="theme-toggle">
+                    <i class="fas fa-moon"></i>
+                </button>
             </div>
         </div>
+    </nav>
 
-        <div class="results-container">
-            <table id="results-table">
-                <thead>
-                    <tr>
-                        <th>Email</th>
-                        <th>Mobile Number</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Results will be injected here by JavaScript -->
-                </tbody>
-            </table>
+    <!-- Hero Section -->
+    <section class="hero" id="hero">
+        <div class="hero-background">
+            <div class="floating-shape shape-1"></div>
+            <div class="floating-shape shape-2"></div>
+            <div class="floating-shape shape-3"></div>
+            <div class="grid-overlay"></div>
         </div>
-    </div>
+        
+        <div class="hero-content">
+            <div class="hero-text">
+                <h1 class="hero-title">
+                    <span class="gradient-text">Intelligent</span>
+                    <br>Web Scraper
+                </h1>
+                <p class="hero-subtitle">
+                    Extract emails, phone numbers & source links from any website. 
+                    Advanced AI-powered crawling with real-time results.
+                </p>
+                <div class="hero-stats">
+                    <div class="stat-item">
+                        <span class="stat-number" data-target="1000">0</span>
+                        <span class="stat-label">Websites Scraped</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" data-target="50000">0</span>
+                        <span class="stat-label">Contacts Found</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" data-target="99">0</span>
+                        <span class="stat-label">% Accuracy</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="hero-form">
+                <div class="form-container">
+                    <h3>Start Scraping</h3>
+                    <form id="scrape-form">
+                        <div class="input-group">
+                            <div class="input-wrapper">
+                                <i class="fas fa-link input-icon"></i>
+                                <textarea 
+                                    id="url-input" 
+                                    placeholder="Enter website URLs, one per line&#10;example.com&#10;https://another-site.com"
+                                    required
+                                    rows="4"
+                                ></textarea>
+                            </div>
+                        </div>
+                        <button type="submit" id="scrape-button" class="primary-btn">
+                            <span class="btn-text">
+                                <i class="fas fa-bolt"></i>
+                                Start Scraping
+                            </span>
+                            <span class="btn-loading" style="display: none;">
+                                <i class="fas fa-spinner fa-spin"></i>
+                                Scraping...
+                            </span>
+                        </button>
+                    </form>
+                    
+                    <div class="form-features">
+                        <div class="feature-tag">
+                            <i class="fas fa-shield-alt"></i>
+                            <span>Secure & Private</span>
+                        </div>
+                        <div class="feature-tag">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span>Lightning Fast</span>
+                        </div>
+                        <div class="feature-tag">
+                            <i class="fas fa-download"></i>
+                            <span>Excel Export</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="container">
+            <h2 class="section-title">Powerful Features</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-envelope"></i>
+                    </div>
+                    <h3>Email Extraction</h3>
+                    <p>Find all email addresses with advanced pattern recognition and validation.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-phone"></i>
+                    </div>
+                    <h3>Phone Number Detection</h3>
+                    <p>Extract phone numbers in multiple formats with international support.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-sitemap"></i>
+                    </div>
+                    <h3>Deep Crawling</h3>
+                    <p>Automatically discover and scrape internal pages for comprehensive data.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-link"></i>
+                    </div>
+                    <h3>Source Tracking</h3>
+                    <p>Track exactly where each contact was found with source URL references.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-file-excel"></i>
+                    </div>
+                    <h3>Excel Export</h3>
+                    <p>Download results in Excel format with timestamps and source information.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                    <h3>Real-time Processing</h3>
+                    <p>Get instant results with our high-performance async scraping engine.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Results Section -->
+    <section class="results-section" id="results">
+        <div class="container">
+            <div class="results-header">
+                <h2 class="section-title">Scraping Results</h2>
+                <div class="results-actions">
+                    <button id="download-btn" class="secondary-btn" style="display: none;">
+                        <i class="fas fa-download"></i>
+                        Download Excel
+                    </button>
+                    <button id="clear-btn" class="tertiary-btn" style="display: none;">
+                        <i class="fas fa-trash"></i>
+                        Clear Results
+                    </button>
+                </div>
+            </div>
+            
+            <div id="loading-indicator" class="loading-container" style="display: none;">
+                <div class="loading-spinner"></div>
+                <p class="loading-text">Scraping websites... This may take a few moments.</p>
+            </div>
+            
+            <div id="message-area" class="message-area"></div>
+            
+            <div class="results-container" id="results-container" style="display: none;">
+                <div class="results-stats">
+                    <div class="stat-card">
+                        <div class="stat-value" id="total-emails">0</div>
+                        <div class="stat-label">Emails Found</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="total-phones">0</div>
+                        <div class="stat-label">Phones Found</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="total-urls">0</div>
+                        <div class="stat-label">Pages Scraped</div>
+                    </div>
+                </div>
+                
+                <div class="results-table-container">
+                    <table class="results-table">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Value</th>
+                                <th>Source URL</th>
+                            </tr>
+                        </thead>
+                        <tbody id="results-tbody">
+                            <!-- Results will be injected here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-grid">
+                <div class="footer-column">
+                    <h3 class="footer-brand">
+                        <i class="fas fa-robot"></i>
+                        WebScraper Pro
+                    </h3>
+                    <p class="footer-description">
+                        Intelligent web scraping solution for businesses and developers. 
+                        Extract valuable contact data with precision and speed.
+                    </p>
+                    <div class="social-links">
+                        <a href="#" class="social-link">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="social-link">
+                            <i class="fab fa-github"></i>
+                        </a>
+                        <a href="#" class="social-link">
+                            <i class="fab fa-linkedin"></i>
+                        </a>
+                        <a href="#" class="social-link">
+                            <i class="fab fa-discord"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="footer-column">
+                    <h4>Product</h4>
+                    <ul class="footer-links">
+                        <li><a href="#">Features</a></li>
+                        <li><a href="#">Pricing</a></li>
+                        <li><a href="#">API Documentation</a></li>
+                        <li><a href="#">Changelog</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-column">
+                    <h4>Resources</h4>
+                    <ul class="footer-links">
+                        <li><a href="#">Documentation</a></li>
+                        <li><a href="#">Tutorials</a></li>
+                        <li><a href="#">Blog</a></li>
+                        <li><a href="#">Support</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-column">
+                    <h4>Company</h4>
+                    <ul class="footer-links">
+                        <li><a href="#">About Us</a></li>
+                        <li><a href="#">Contact</a></li>
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>&copy; 2025 WebScraper Pro. All rights reserved. Built with <i class="fas fa-heart" style="color: #8b5cf6;"></i> for developers.</p>
+            </div>
+        </div>
+    </footer>
 
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
